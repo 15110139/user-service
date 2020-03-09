@@ -50,6 +50,7 @@ class CreateUserApplication {
             password,
             email,
             phoneNumber,
+            amount,
         } = userData
 
 
@@ -114,7 +115,7 @@ class CreateUserApplication {
             const order = await this.clientGRPC.createOrder({
                 userId: "1f8a206f-7085-43f4-8182-112461fcd3c4",
                 productId: "cbe2b442-a298-41d7-b018-376960e44ada",
-                amount:amount
+                amount
             })
             console.log("Data order return", order)
         } catch (error) {
