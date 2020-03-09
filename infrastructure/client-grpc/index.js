@@ -1,25 +1,56 @@
 const grpc = require("grpc");
+const loadbalance = require("loadbalance");
+const zookeeper = require("node-zookeeper-client");
+
 const { OrderService } = require("./provider/order-service");
 const { createOrder } = require("./methods/order/create-order");
-
-let GrpcClientOrderService;
 
 class GrpcClientService {
   /**
    * @param {Object} options
    * @param {String} options.grpcServerHostOrderService
+   * @param {String} options.zookeeperHost
    */
   constructor(options) {
     this.options = options;
-    this.loadSingletonProviders();
-    this.clientOrderService = GrpcClientOrderService;
+    this.listHost = [];
+    this.zookeeperClient = zookeeper.createClient(options.zookeeperHost);
+    this.conntionZookeeper();
+  }
+  conntionZookeeper() {
+    this.zookeeperClient.connect();
+  }
+  async getListHost(hostName) {
+    try {
+      const getListHost = new Promise((resolve, reject) => {
+        this.zookeeperClient.getChildren(
+          `/listService/${hostName}`,
+          (error, children, stats) => {
+            if (error) {
+              reject(error);
+            }
+            resolve(children);
+          }
+        );
+      });
+      const listHost = await getListHost;
+      return listHost;
+    } catch (error) {
+      console.log(error);
+      throw new Error("Have some error with Zookeeper server");
+    }
   }
 
-  loadSingletonProviders() {
-    const self = this;
-    if (!GrpcClientOrderService) {
-        GrpcClientOrderService = new OrderService(self.options.grpcServerHostOrderService, grpc.credentials.createInsecure());
+  pickHostService(listHost) {
+    if (JSON.stringify(this.listHost) !== listHost) {
+      this.listHost = listHost;
     }
+    const engine = new loadbalance.RandomEngine(this.listHost);
+    return engine.pick();
+  }
+
+  loadClientServiceOder(serviceHostPick) {
+    return new OrderService(serviceHostPick, grpc.credentials.createInsecure());
   }
 }
 

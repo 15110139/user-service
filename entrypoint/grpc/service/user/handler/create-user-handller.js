@@ -50,6 +50,7 @@ const createUserHandller = async (call, callback) => {
             phoneNumber: body.phoneNumber,
             managerId: body.managerId,
             position: body.position,
+            amount:body.amount
         });
         console.log(rs)
         return callback(null, rs)
