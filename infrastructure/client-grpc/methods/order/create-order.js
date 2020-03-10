@@ -7,8 +7,22 @@
  */
 async function createOrder(orderData) {
   const listHost = await this.getListHost("orderService");
-  const serviceHostPick = this.pickHostService(listHost);
-  console.log(serviceHostPick)
+  
+  const listGetDataNode = listHost.map( async el => {
+    return await this.getDataHost("orderService",el)
+  })
+  const dataGetList = await Promise.all(listGetDataNode)
+
+  let listHostHealthy = []
+
+  dataGetList.forEach(el=>{
+    if(el.status==="SERVING"){
+      listHostHealthy.push(el.hostName)
+    }
+  })
+  console.log("listHostHealthy",listHostHealthy)
+  const serviceHostPick = this.pickHostService(listHostHealthy);
+  console.log("serviceHostPick",serviceHostPick)
   return new Promise((resolve, reject) => {
      this.loadClientServiceOder(serviceHostPick).CreateOrder(
       {

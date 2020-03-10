@@ -20,11 +20,11 @@ class GrpcClientService {
   conntionZookeeper() {
     this.zookeeperClient.connect();
   }
-  async getListHost(hostName) {
+  async getListHost(hostListName) {
     try {
       const getListHost = new Promise((resolve, reject) => {
         this.zookeeperClient.getChildren(
-          `/listService/${hostName}`,
+          `/listService/${hostListName}`,
           (error, children, stats) => {
             if (error) {
               reject(error);
@@ -34,10 +34,12 @@ class GrpcClientService {
         );
       });
       const listHost = await getListHost;
-      return listHost;
+      return listHost
     } catch (error) {
       console.log(error);
-      throw new Error("Have some error with Zookeeper server");
+      throw new Error(
+        "Have some error get list children with Zookeeper server"
+      );
     }
   }
 
@@ -47,6 +49,28 @@ class GrpcClientService {
     }
     const engine = new loadbalance.RandomEngine(this.listHost);
     return engine.pick();
+  }
+
+  async getDataHost(hostListName, hostName) {
+    try {
+      const getData = new Promise((resolve, reject) => {
+        this.zookeeperClient.getData(
+          `/listService/${hostListName}/${hostName}`,
+          null,
+          function(error, data, stat) {
+            if (error) {
+              reject(error);
+            }
+            resolve(JSON.parse(data.toString("utf8")));
+          }
+        );
+      });
+      const data = await getData;
+      return { hostName, ...data };
+    } catch (error) {
+      console.log(error);
+      throw new Error("Have some errror when get data node on Zookeeper service")
+    }
   }
 
   loadClientServiceOder(serviceHostPick) {
